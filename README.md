@@ -46,8 +46,15 @@ boto3](https://boto3.readthedocs.org/en/latest/guide/configuration.html), or
 use IAM instance profiles (which are supported, but not mentioned by the
 `boto3` documentation). See below for which AWS permissions are required.
 
-`letsencrypt-aws` takes it's configuration via the `LETSENCRYPT_AWS_CONFIG`
-environment variable. This should be a JSON object with the following schema:
+`letsencrypt-aws` takes it's configuration via a JSON object.
+The path to this file can be specified via an environment variable `LETSENCRYPT_AWS_CONFIG_PATH` or the CLI
+
+For example:
+ `LETSENCRYPT_AWS_CONFIG_PATH=./config.json`
+or
+`python letsencrypt-aws.py update-certificates --config-path=./config.json`
+
+This config JSON object should have the following schema:
 
 ```json
 {

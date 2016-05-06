@@ -422,13 +422,7 @@ def update_elbs(logger, acme_client, force_issue, certificate_requests):
 def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
     uri = rfc3986.urlparse(acme_account_key)
     if uri.scheme == "file":
-        if uri.host is None:
-            path = uri.path
-        elif uri.path is None:
-            path = uri.host
-        else:
-            path = os.path.join(uri.host, uri.path)
-        with open(path) as f:
+        with open(uri.path) as f:
             key = f.read()
     elif uri.scheme == "s3":
         # uri.path includes a leading "/"
@@ -467,12 +461,19 @@ def cli():
         "expiration."
     )
 )
-def update_certificates(persistent=False, force_issue=False):
+@click.option(
+    "--config-path", envvar="LETSENCRYPT_AWS_CONFIG_PATH", type=click.Path(),
+    help="Path to configuration path."
+)
+def update_certificates(persistent=False, force_issue=False, config_path=None):
     logger = Logger()
     logger.emit("startup")
 
     if persistent and force_issue:
         raise ValueError("Can't specify both --persistent and --force-issue")
+
+    if not config_path:
+        raise ValueError("Must specify config file path via cli (--config-path) or ENV var (LETSENCRYPT_AWS_CONFIG_PATH)")
 
     session = boto3.Session()
     s3_client = session.client("s3")
@@ -480,7 +481,10 @@ def update_certificates(persistent=False, force_issue=False):
     route53_client = session.client("route53")
     iam_client = session.client("iam")
 
-    config = json.loads(os.environ["LETSENCRYPT_AWS_CONFIG"])
+    config = None
+    with open(config_path) as config_file:
+        config = json.load(config_file)
+
     domains = config["domains"]
     acme_directory_url = config.get(
         "acme_directory_url", DEFAULT_ACME_DIRECTORY_URL
